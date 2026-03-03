@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  font-family: 'Inter', sans-serif;
+}
+
+/* === CHECKMARK ANIMATION === */
+@keyframes drawCheck {
+  from { stroke-dashoffset: 100; }
+  to   { stroke-dashoffset: 0; }
+}
+.animate-draw-check {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: drawCheck 0.6s ease forwards;
+}
+
+/* === FADE UP === */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up   { animation: fadeUp 0.4s ease-out forwards; }
+.animate-fade-up-1 { animation: fadeUp 0.4s ease-out 0.1s both; }
+.animate-fade-up-2 { animation: fadeUp 0.4s ease-out 0.2s both; }
+.animate-fade-up-3 { animation: fadeUp 0.4s ease-out 0.3s both; }
+.animate-fade-up-4 { animation: fadeUp 0.4s ease-out 0.4s both; }
+.animate-fade-up-5 { animation: fadeUp 0.4s ease-out 0.5s both; }
+
+/* === PULSE DOT === */
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.8); }
+}
+.animate-pulse-dot { animation: pulseDot 1.5s ease-in-out infinite; }
+
+/* === GLOW PULSE === */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,153,0,0.6); }
+  50%       { box-shadow: 0 0 0 10px rgba(255,153,0,0); }
+}
+.animate-glow-pulse { animation: glowPulse 1.5s ease-in-out infinite; }
+
+/* === TIMELINE STEP FILL === */
+@keyframes stepIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-step-0 { animation: stepIn 0.3s ease-out 0.0s both; }
+.animate-step-1 { animation: stepIn 0.3s ease-out 0.15s both; }
+.animate-step-2 { animation: stepIn 0.3s ease-out 0.3s both; }
+.animate-step-3 { animation: stepIn 0.3s ease-out 0.45s both; }
+.animate-step-4 { animation: stepIn 0.3s ease-out 0.6s both; }
+.animate-step-5 { animation: stepIn 0.3s ease-out 0.75s both; }
+
+/* === STAR BOUNCE === */
+@keyframes starBounce {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.45); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1.1); }
+}
+.animate-star-bounce { animation: starBounce 0.2s ease-out forwards; }
+
+/* === CONFETTI === */
+@keyframes confettiDrop {
+  0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(90px) rotate(420deg); }
+}
+.confetti-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: confettiDrop 0.9s ease-out forwards;
+}
+
+/* === CIRCLE PULSE (Screen 1 mount) === */
+@keyframes circlePulse {
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-circle-pulse { animation: circlePulse 0.6s ease-out forwards; }
+
+/* === SLIDE UP FROM BOTTOM === */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up { animation: slideUp 0.5s ease-out 0.3s both; }
+
+/* === BLINK === */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.1; }
+}
+.animate-blink { animation: blink 1s step-end infinite; }
+
+/* === TRUCK BOUNCE ALONG ROUTE === */
+@keyframes truckBounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+.animate-truck-bounce { animation: truckBounce 0.6s ease-in-out infinite; }
+
+/* Hide scrollbar but keep scroll */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

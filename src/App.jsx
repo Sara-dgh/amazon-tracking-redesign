@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Menu, Sun, Moon, ClipboardList, Map, List, Clock, CheckCircle,
   ChevronRight, Star, Camera, Bell, Phone, ArrowLeft, Package,
-  Truck, Home, RefreshCw, MapPin
+  Truck, Home, RefreshCw, MapPin, User, CreditCard, Navigation
 } from 'lucide-react'
 import './index.css'
 
@@ -30,12 +30,12 @@ const DRIVER = {
 }
 
 const TIMELINE_STEPS = [
-  { icon: '📋', label: 'Order placed',       time: 'Mon, Mar 2 · 10:34 AM', done: true },
-  { icon: '💳', label: 'Payment confirmed',   time: 'Mon, Mar 2 · 10:35 AM', done: true },
-  { icon: '📦', label: 'Preparing your order',time: 'Mon, Mar 2 · 3:00 PM',  done: true },
-  { icon: '🚚', label: 'Shipped',             time: 'Tue, Mar 3 · 8:22 AM · FedEx #738291', done: true },
-  { icon: '🏃', label: 'Out for delivery',    time: 'Thu, Mar 5 · 9:14 AM',  done: true,  current: true },
-  { icon: '🏠', label: 'Delivered',           time: 'Expected by 8 PM today', done: false },
+  { Icon: ClipboardList, label: 'Order placed',        time: 'Mon, Mar 2 · 10:34 AM', done: true },
+  { Icon: CreditCard,    label: 'Payment confirmed',    time: 'Mon, Mar 2 · 10:35 AM', done: true },
+  { Icon: Package,       label: 'Preparing your order', time: 'Mon, Mar 2 · 3:00 PM',  done: true },
+  { Icon: Truck,         label: 'Shipped',              time: 'Tue, Mar 3 · 8:22 AM · FedEx #738291', done: true },
+  { Icon: Navigation,    label: 'Out for delivery',     time: 'Thu, Mar 5 · 9:14 AM',  done: true, current: true },
+  { Icon: Home,          label: 'Delivered',            time: 'Expected by 8 PM today', done: false },
 ]
 
 const DELAY = {
@@ -52,13 +52,6 @@ const DELIVERY = {
   location: 'Front door',
 }
 
-const weatherContext = {
-  temp: '6°C',
-  condition: 'Partly cloudy',
-  icon: '🌤',
-  timeOfDay: 'afternoon',
-  deliveryMessage: 'Arriving this afternoon 🌤',
-}
 
 // ============================================================
 // === THEME & COLORS ===
@@ -273,20 +266,20 @@ function Screen1({ isDark, onNavigate }) {
 
         {/* Delivery Estimate Card */}
         <InfoCard isDark={isDark} className="animate-fade-up-2">
-          <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: t.textMuted }}>
+          <div className="text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: t.textMuted }}>
             Estimated Delivery
           </div>
-          <div className="text-3xl font-extrabold" style={{ color: t.text }}>
+          <div className="text-xl font-bold" style={{ color: t.text }}>
             {ORDER.estimatedDate}
           </div>
-          <div className="text-sm mt-1" style={{ color: t.textMuted }}>
+          <div className="text-xs mt-1" style={{ color: t.textMuted }}>
             {ORDER.estimatedTime} · {ORDER.deliveryType}
           </div>
           <div
-            className="mt-3 text-xs px-3 py-1.5 rounded-full inline-flex items-center gap-1"
+            className="mt-3 text-xs px-3 py-1.5 rounded-full inline-flex items-center gap-1.5"
             style={{ backgroundColor: isDark ? '#1A2E1A' : '#F0FBF0', color: COLORS.green }}
           >
-            ☀️ Clear skies expected — great delivery day
+            <Sun size={11} /> Clear skies expected — great delivery day
           </div>
         </InfoCard>
 
@@ -345,138 +338,141 @@ function Screen1({ isDark, onNavigate }) {
 // === SCREEN 2: Live Tracking Map ===
 // ============================================================
 
-// Animated truck along SVG route
-function RouteVisualization({ isDark }) {
-  const t = getTheme(isDark)
-  const [truckPos, setTruckPos] = useState(0)
+function RouteVisualization() {
+  // Apple Maps day mode — warm beige, white roads, dark labels
+  const bg = '#E8DDD0'
+  const block = 'rgba(0,0,0,0.055)'
+  const road = 'rgba(255,255,255,0.92)'
 
-  useEffect(() => {
-    let raf
-    let start = null
-    const duration = 3000
+  // Key coordinates — snapped to road grid
+  const ox = 30,  oy = 166  // origin (on y=166 road)
+  const dx = 201, dy = 82   // driver (~65% along route, on y=82 road)
+  const hx = 308, hy = 48   // home (on x=308 road)
 
-    function animate(ts) {
-      if (!start) start = ts
-      const elapsed = (ts - start) % (duration * 2)
-      const progress = elapsed < duration
-        ? elapsed / duration
-        : 2 - elapsed / duration
-      setTruckPos(progress)
-      raf = requestAnimationFrame(animate)
-    }
-    raf = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(raf)
-  }, [])
-
-  // Route path points
-  const path = 'M 30 160 C 80 155 100 110 145 100 C 190 90 195 65 240 58 C 285 51 295 90 340 100'
-
-  // Node positions
-  const nodes = [
-    { cx: 30,  cy: 160, label: 'Warehouse', icon: '📦', done: true },
-    { cx: 145, cy: 100, label: 'Sorting',   icon: '🔄', done: true },
-    { cx: 240, cy: 58,  label: 'On the way',icon: '🚚', done: true, active: true },
-    { cx: 340, cy: 100, label: 'Your home', icon: '🏠', done: false },
-  ]
-
-  // Interpolate position along path (simplified linear interpolation for demo)
-  const getPos = (t) => {
-    // Cubic bezier approximation
-    const p0 = { x: 30,  y: 160 }
-    const p3 = { x: 340, y: 100 }
-    const p1 = { x: 100, y: 110 }
-    const p2 = { x: 295, y: 90 }
-    const mt = 1 - t
-    const x = mt*mt*mt*p0.x + 3*mt*mt*t*p1.x + 3*mt*t*t*p2.x + t*t*t*p3.x
-    const y = mt*mt*mt*p0.y + 3*mt*mt*t*p1.y + 3*mt*t*t*p2.y + t*t*t*p3.y
-    // Truck is at ~60% of the path (between node 2 and 3)
-    const baseT = 0.55
-    const rangeT = 0.1
-    const actualT = baseT + rangeT * t
-    const xA = mt*mt*mt*p0.x + 3*mt*mt*actualT*p1.x + 3*mt*actualT*actualT*p2.x + actualT*actualT*actualT*p3.x
-    const yA = mt*mt*mt*p0.y + 3*mt*mt*actualT*p1.y + 3*mt*actualT*actualT*p2.y + actualT*actualT*actualT*p3.y
-    return { x: xA, y: yA }
-  }
-
-  const truckXY = getPos(truckPos)
+  // Route follows the road grid with rounded corners (Q = quadratic bezier at each turn)
+  // Completed: east on y=166 → north on x=80 → east on y=140 → north on x=164 → east on y=82 to driver
+  const routeCompleted = 'M 30 166 L 72 166 Q 80 166 80 158 L 80 148 Q 80 140 88 140 L 156 140 Q 164 140 164 132 L 164 90 Q 164 82 172 82 L 201 82'
+  // Remaining: east on y=82 → north on x=308 to home
+  const routeRemaining = 'M 201 82 L 300 82 Q 308 82 308 74 L 308 48'
+  // Full route underlay
+  const routeFull = 'M 30 166 L 72 166 Q 80 166 80 158 L 80 148 Q 80 140 88 140 L 156 140 Q 164 140 164 132 L 164 90 Q 164 82 172 82 L 300 82 Q 308 82 308 74 L 308 48'
 
   return (
-    <div
-      className="rounded-2xl p-3 mx-0"
-      style={{ backgroundColor: isDark ? '#0D1A2A' : '#EBF3FC' }}
-    >
-      <svg viewBox="0 0 380 200" width="100%" style={{ overflow: 'visible' }}>
-        {/* Dashed background route */}
-        <path
-          d={path}
-          fill="none"
-          stroke={isDark ? '#2D3748' : '#CBD5E0'}
-          strokeWidth="3"
-          strokeDasharray="8 5"
-        />
-        {/* Completed route (up to truck) */}
-        <path
-          d="M 30 160 C 80 155 100 110 145 100 C 190 90 195 65 240 58"
-          fill="none"
-          stroke={COLORS.green}
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
+    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: bg }}>
+      <svg viewBox="0 0 380 200" width="100%" style={{ display: 'block' }}>
+        <defs>
+          <radialGradient id="vignette" cx="50%" cy="50%" r="65%">
+            <stop offset="0%" stopColor="rgba(0,0,0,0)" />
+            <stop offset="100%" stopColor="rgba(0,0,0,0.12)" />
+          </radialGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
 
-        {/* Nodes */}
-        {nodes.map((n, i) => (
-          <g key={i}>
-            {n.active ? (
-              <>
-                <circle cx={n.cx} cy={n.cy} r="18" fill={COLORS.orange} opacity="0.2" />
-                <circle cx={n.cx} cy={n.cy} r="13" fill={COLORS.orange} className="animate-glow-pulse" />
-              </>
-            ) : (
-              <circle
-                cx={n.cx} cy={n.cy} r="13"
-                fill={n.done ? COLORS.green : (isDark ? '#2D3748' : '#CBD5E0')}
-              />
-            )}
-            <text x={n.cx} y={n.cy + 4} textAnchor="middle" fontSize="11">
-              {n.icon}
-            </text>
-            <text
-              x={n.cx} y={n.cy + 26}
-              textAnchor="middle"
-              fontSize="8"
-              fill={isDark ? '#8A9BB0' : '#565959'}
-              fontFamily="Inter, sans-serif"
-            >
-              {n.label}
-            </text>
-          </g>
+        {/* City blocks */}
+        {[
+          [16,14,54,30], [88,10,62,26], [166,18,50,36], [236,8,56,34], [306,14,54,28],
+          [16,88,54,38],  [90,96,60,32], [172,82,52,44], [244,78,58,38], [315,90,46,40],
+          [16,148,64,28], [100,145,54,32],[180,150,58,28],[258,143,52,35],
+        ].map(([x, y, w, h], i) => (
+          <rect key={i} x={x} y={y} width={w} height={h} rx="3" fill={block} />
         ))}
 
-        {/* Animated truck */}
-        <g transform={`translate(${truckXY.x - 12}, ${truckXY.y - 22})`} className="animate-truck-bounce">
-          <rect x="0" y="4" width="24" height="14" rx="3" fill={COLORS.orange} />
-          <rect x="16" y="0" width="10" height="11" rx="2" fill={COLORS.amber} />
-          <circle cx="5"  cy="18" r="3.5" fill={isDark ? '#1A2332' : '#2D3748'} />
-          <circle cx="19" cy="18" r="3.5" fill={isDark ? '#1A2332' : '#2D3748'} />
-          <circle cx="5"  cy="18" r="1.5" fill="#fff" />
-          <circle cx="19" cy="18" r="1.5" fill="#fff" />
-        </g>
+        {/* Road grid */}
+        <line x1="0" y1="82"  x2="380" y2="82"  stroke={road} strokeWidth="8" />
+        <line x1="0" y1="140" x2="380" y2="140" stroke={road} strokeWidth="5" />
+        <line x1="0" y1="166" x2="380" y2="166" stroke={road} strokeWidth="4" />
+        <line x1="80"  y1="0" x2="80"  y2="200" stroke={road} strokeWidth="5" />
+        <line x1="164" y1="0" x2="164" y2="200" stroke={road} strokeWidth="8" />
+        <line x1="250" y1="0" x2="250" y2="200" stroke={road} strokeWidth="5" />
+        <line x1="308" y1="0" x2="308" y2="200" stroke={road} strokeWidth="4" />
 
-        {/* Stop dots ahead */}
-        {[0.72, 0.82, 0.92].map((frac, i) => {
-          const mt = 1 - frac
-          const p0 = { x: 30, y: 160 }, p1 = { x: 100, y: 110 }, p2 = { x: 295, y: 90 }, p3 = { x: 340, y: 100 }
-          const x = mt*mt*mt*p0.x + 3*mt*mt*frac*p1.x + 3*mt*frac*frac*p2.x + frac*frac*frac*p3.x
-          const y = mt*mt*mt*p0.y + 3*mt*mt*frac*p1.y + 3*mt*frac*frac*p2.y + frac*frac*frac*p3.y
-          return (
-            <circle key={i} cx={x} cy={y} r="5"
-              fill={isDark ? '#2D3748' : '#CBD5E0'}
-              stroke={isDark ? '#4A5568' : '#A0AEC0'}
-              strokeWidth="1.5"
-            />
-          )
-        })}
+        {/* Vignette */}
+        <rect x="0" y="0" width="380" height="200" fill="url(#vignette)" />
+
+        {/* Full route underlay (very faint) */}
+        <path
+          d={routeFull}
+          fill="none"
+          stroke="rgba(0,0,0,0.07)"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* Completed segment */}
+        <path
+          d={routeCompleted}
+          fill="none"
+          stroke={COLORS.green}
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* Remaining segment */}
+        <path
+          d={routeRemaining}
+          fill="none"
+          stroke="rgba(0,0,0,0.22)"
+          strokeWidth="3"
+          strokeDasharray="5 4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* Origin dot */}
+        <circle cx={ox} cy={oy} r="7" fill={COLORS.green} opacity="0.25" />
+        <circle cx={ox} cy={oy} r="4.5" fill={COLORS.green} />
+        <circle cx={ox} cy={oy} r="1.8" fill={bg} />
+
+        {/* Driver — live location */}
+        <circle cx={dx} cy={dy} r="24" fill={COLORS.orange} className="animate-live-ring" />
+        <circle cx={dx} cy={dy} r="12" fill={COLORS.orange} filter="url(#glow)" />
+        <circle cx={dx} cy={dy} r="4.5" fill="#fff" />
+
+        {/* Driver label */}
+        <rect x={dx - 32} y={dy - 46} width="64" height="18" rx="9" fill={COLORS.orange} />
+        <text
+          x={dx} y={dy - 34}
+          textAnchor="middle" fontSize="9" fontWeight="700"
+          fill="#fff" fontFamily="Inter, sans-serif"
+        >
+          Your driver
+        </text>
+
+        {/* Destination pin */}
+        <ellipse cx={hx} cy={hy - 12} rx="11.5" ry="11.5" fill="#1F2937" />
+        <polygon points={`${hx - 8},${hy - 4} ${hx + 8},${hy - 4} ${hx},${hy + 8}`} fill="#1F2937" />
+        <circle cx={hx} cy={hy - 12} r="4.5" fill={COLORS.orange} />
+
+        {/* Destination label */}
+        <rect x={hx - 28} y={hy + 10} width="56" height="18" rx="9" fill="#1F2937" />
+        <text
+          x={hx} y={hy + 23}
+          textAnchor="middle" fontSize="9" fontWeight="700"
+          fill="#fff" fontFamily="Inter, sans-serif"
+        >
+          Your home
+        </text>
       </svg>
+
+      {/* Map footer */}
+      <div
+        className="flex items-center justify-between px-3 py-2"
+        style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}
+      >
+        <div className="flex items-center gap-1.5">
+          <div
+            className="w-1.5 h-1.5 rounded-full animate-pulse-dot"
+            style={{ backgroundColor: COLORS.green }}
+          />
+          <span className="text-xs" style={{ color: 'rgba(0,0,0,0.45)' }}>Live tracking</span>
+        </div>
+        <span className="text-[10px]" style={{ color: 'rgba(0,0,0,0.3)' }}>Updated 1 min ago</span>
+      </div>
     </div>
   )
 }
@@ -491,29 +487,21 @@ function Screen2({ isDark }) {
       <div className="px-4 py-4 flex flex-col gap-4">
         {/* Status pill */}
         <div className="flex justify-center animate-fade-up">
-          <StatusPill label="🚚 Out for Delivery" color="orange" pulse />
+          <StatusPill label="Out for Delivery" color="orange" pulse />
         </div>
 
         {/* Route visualization */}
         <div className="animate-fade-up-1">
-          <RouteVisualization isDark={isDark} />
+          <RouteVisualization />
         </div>
 
         {/* ETA Card */}
         <InfoCard isDark={isDark} className="animate-slide-up">
-          <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: t.textMuted }}>
+          <div className="text-xs font-medium uppercase tracking-widest mb-1.5" style={{ color: t.textMuted }}>
             Estimated Arrival
           </div>
-          <div className="text-2xl font-extrabold" style={{ color: t.text }}>
+          <div className="text-xl font-bold" style={{ color: t.text }}>
             {DRIVER.etaStart} – {DRIVER.etaEnd}
-          </div>
-          <div className="flex flex-col gap-1 mt-2">
-            <div className="text-xs flex items-center gap-1" style={{ color: t.textMuted }}>
-              {weatherContext.icon} {weatherContext.condition} · {weatherContext.temp} · Good conditions
-            </div>
-            <div className="text-xs flex items-center gap-1" style={{ color: t.textMuted }}>
-              🕐 {weatherContext.deliveryMessage}
-            </div>
           </div>
         </InfoCard>
 
@@ -521,25 +509,14 @@ function Screen2({ isDark }) {
         <InfoCard isDark={isDark} className="animate-fade-up-3">
           <div className="flex items-center gap-3">
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-xl flex-shrink-0"
+              className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: isDark ? '#243040' : '#F5F5F5' }}
             >
-              🧑‍✈️
+              <User size={22} style={{ color: t.textMuted }} />
             </div>
             <div className="flex-1">
               <div className="text-xs" style={{ color: t.textMuted }}>Your driver</div>
               <div className="font-semibold text-sm" style={{ color: t.text }}>{DRIVER.name}</div>
-              <div className="flex items-center gap-1 mt-0.5">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={11}
-                    fill={i < Math.round(DRIVER.rating) ? COLORS.orange : 'none'}
-                    stroke={COLORS.orange}
-                  />
-                ))}
-                <span className="text-xs ml-1" style={{ color: t.textMuted }}>{DRIVER.rating}</span>
-              </div>
             </div>
             <div className="text-right">
               <div className="text-xs" style={{ color: t.textMuted }}>Stops ahead</div>
@@ -609,7 +586,7 @@ function Screen3({ isDark }) {
                         />
                       </svg>
                     ) : (
-                      <span className="text-lg">{step.icon}</span>
+                      <step.Icon size={16} color={isDark ? '#8A9BB0' : '#A0AEC0'} />
                     )}
                   </div>
                   {!isLast && (
@@ -715,7 +692,7 @@ function Screen4({ isDark }) {
           className="rounded-2xl p-5 animate-fade-up"
           style={{ backgroundColor: isDark ? '#2A1E10' : '#FEF3E9', border: `1px solid #F4A261` }}
         >
-          <div className="text-4xl mb-3">⏱</div>
+          <div className="mb-3"><Clock size={32} color={isDark ? '#FDDCB5' : '#C45500'} /></div>
           <h2 className="text-xl font-bold leading-snug" style={{ color: isDark ? '#FDDCB5' : '#7C3504' }}>
             Your package is taking a little longer
           </h2>
@@ -733,10 +710,10 @@ function Screen4({ isDark }) {
             <div className="text-base line-through" style={{ color: t.textMuted }}>
               {DELAY.originalDate} · {DELAY.originalTime}
             </div>
-            <div className="text-2xl font-extrabold" style={{ color: t.text }}>
+            <div className="text-xl font-bold" style={{ color: t.text }}>
               {DELAY.newDate}
             </div>
-            <div className="text-sm" style={{ color: t.textMuted }}>{DELAY.newTime}</div>
+            <div className="text-xs" style={{ color: t.textMuted }}>{DELAY.newTime}</div>
           </div>
           <div
             className="mt-3 text-xs px-3 py-2 rounded-xl"
@@ -753,12 +730,12 @@ function Screen4({ isDark }) {
           </div>
           <div className="flex flex-col gap-3">
             {[
-              { icon: '🔔', text: "We'll notify you when it's out for delivery" },
-              { icon: '📦', text: 'Your item is secured at a local facility overnight' },
-              { icon: '💳', text: 'No charges until delivery is confirmed' },
+              { Icon: Bell,       text: "We'll notify you when it's out for delivery" },
+              { Icon: Package,    text: 'Your item is secured at a local facility overnight' },
+              { Icon: CreditCard, text: 'No charges until delivery is confirmed' },
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-3">
-                <span className="text-xl flex-shrink-0">{item.icon}</span>
+                <item.Icon size={18} style={{ color: t.textMuted, flexShrink: 0, marginTop: 1 }} />
                 <span className="text-sm leading-relaxed" style={{ color: t.textMuted }}>
                   {item.text}
                 </span>
@@ -862,7 +839,7 @@ function Screen5({ isDark }) {
             </svg>
           </div>
           <h1 className="text-2xl font-extrabold mt-3" style={{ color: t.text }}>
-            It's here! 🎉
+            It's here!
           </h1>
           <p className="text-sm mt-1" style={{ color: t.textMuted }}>
             Delivered {DELIVERY.date} at {DELIVERY.time}
@@ -921,7 +898,7 @@ function Screen5({ isDark }) {
               className="mt-3 text-sm text-center font-medium animate-fade-up"
               style={{ color: COLORS.green }}
             >
-              Thanks for your feedback! ✨
+              Thanks for your feedback!
             </div>
           )}
         </InfoCard>
